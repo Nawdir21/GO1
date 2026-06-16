@@ -40,14 +40,25 @@ Herausforderungen und die finale, funktionierende lokale Hindernisumfahrung.
 
 ### Obstacle Avoidance
 <!-- VIDEO 1: Hier "go1 obstacle avoidance.mp4" per Drag & Drop reinziehen.
-     GitHub ersetzt diese Zeile automatisch durch einen Player. -->
+     GitHub ersetzt diese Zeile auto
+https://github.com/user-attachments/assets/5558c97a-2d4c-4d2a-aed0-b5dc3ced77ce
+
+
+
+
+matisch durch einen Player. -->
 
 ### Automatischer Stopp bei Ecke
 <!-- VIDEO 2: Hier "automatischerStopBeiEcke.mp4" per Drag & Drop reinziehen. -->
 
+
+https://github.com/user-attachments/assets/3d5a3151-895a-48b2-a2d8-73792aa02032
+
+
+
 ### Obstacle Avoidance + Stopp bei Ecke (kombiniert)
 <!-- VIDEO 3: Hier "obstacleAvoidanceUndStopBeiEcke.mp4" per Drag & Drop reinziehen. -->
-
+https://github.com/user-attachments/assets/45e9e3b6-9757-4bb5-9861-5b51c887bd94
 ---
 
 ## Systemübersicht
