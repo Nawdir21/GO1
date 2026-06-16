@@ -1,0 +1,8 @@
+prefix=/home/ridwan/catkin_ws/install
+
+Name: go1_nav
+Description: Description of go1_nav
+Version: 0.0.1
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

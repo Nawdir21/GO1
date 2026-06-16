@@ -1,0 +1,11 @@
+<launch>
+  <!-- LiDAR->/scan muss laufen (pointcloud_to_laserscan). Dann: -->
+  <node pkg="go1_safety_scan" type="scan_bubble.py" name="scan_safety_bubble" output="screen">
+    <param name="stop_dist"   value="0.60"/>
+    <param name="avoid_dist"  value="1.00"/>
+    <param name="fov_deg"     value="40.0"/>   <!-- +-20° nach vorne -->
+    <param name="v_nominal"   value="0.30"/>
+    <param name="v_slow"      value="0.10"/>
+    <param name="yaw_rate"    value="0.60"/>
+  </node>
+</launch>

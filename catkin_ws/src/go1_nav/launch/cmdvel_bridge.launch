@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="go1_nav" type="cmdvel_to_highcmd.py" name="cmdvel_to_highcmd" output="screen"/>
+</launch>

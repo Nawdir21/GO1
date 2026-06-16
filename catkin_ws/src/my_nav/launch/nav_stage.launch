@@ -1,0 +1,41 @@
+<launch>
+  <arg name="scan_sync" default="/scan_sync"/>
+  <arg name="sdk_root"  default="/home/ridwan/Downloads/unitree_legged_sdk"/>
+  <arg name="dest_ip"   default="192.168.12.1"/>
+
+  <!-- Odom-Fallback: erzeugt /odom aus /cmd_vel (für den lokalen Planner) -->
+  <node pkg="my_nav" type="twist_to_odom.py" name="twist_to_odom" output="screen" respawn="true">
+    <param name="base_frame_id" value="base_link"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="cmd_vel_topic" value="/cmd_vel"/>
+  </node>
+
+  <!-- move_base: DWA + Costmaps lesen /scan_sync -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="true">
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
+
+    <rosparam file="$(find my_nav)/params/costmap_common_params.yaml"    command="load"/>
+    <rosparam file="$(find my_nav)/params/global_costmap_params.yaml"    command="load"/>
+    <rosparam file="$(find my_nav)/params/local_costmap_params.yaml"     command="load"/>
+    <rosparam file="$(find my_nav)/params/dwa_local_planner_params.yaml" command="load"/>
+
+    <!-- beide Costmaps explizit auf /scan_sync -->
+    <rosparam param="global_costmap/observation_sources">laser</rosparam>
+    <rosparam param="global_costmap/laser">
+      {data_type: LaserScan, topic: $(arg scan_sync), marking: true, clearing: true}
+    </rosparam>
+    <rosparam param="local_costmap/observation_sources">laser</rosparam>
+    <rosparam param="local_costmap/laser">
+      {data_type: LaserScan, topic: $(arg scan_sync), marking: true, clearing: true}
+    </rosparam>
+  </node>
+
+  <!-- Bridge: /cmd_vel -> GO1 -->
+  <node pkg="my_nav" type="cmd_vel_to_go1.py" name="cmd_vel_to_go1" output="screen" respawn="true">
+    <param name="sdk_root" value="$(arg sdk_root)"/>
+    <param name="dest_ip"  value="$(arg dest_ip)"/>
+    <param name="max_vx"   value="0.25"/>
+    <param name="max_vy"   value="0.12"/>
+    <param name="max_yaw"  value="0.60"/>
+  </node>
+</launch>

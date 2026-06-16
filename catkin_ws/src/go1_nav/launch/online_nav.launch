@@ -1,0 +1,63 @@
+<launch>
+  <arg name="rslidar_frame"      default="rslidar"/>
+  <arg name="base_link_frame"    default="base_link"/>
+  <arg name="odom_frame"         default="odom"/>
+  <arg name="map_frame"          default="map"/>
+  <arg name="lidar_tf"           default="0.20 0.0 0.35 0 0 0"/>
+  <arg name="min_height"         default="-0.10"/>
+  <arg name="max_height"         default="0.10"/>
+  <arg name="use_highstate_odom" default="true"/>
+  <arg name="start_cmdvel_bridge" default="true"/>
+
+  <!-- LiDAR <-> Base-Link -->
+  <node pkg="tf" type="static_transform_publisher" name="laser_to_base"
+        args="$(arg lidar_tf) $(arg base_link_frame) $(arg rslidar_frame) 100"/>
+
+  <!-- PointCloud -> LaserScan -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pcl_to_scan" output="screen">
+    <remap from="cloud_in" to="/rslidar_points"/>
+    <remap from="scan"     to="/scan"/>
+    <param name="target_frame" value="$(arg rslidar_frame)"/>
+    <param name="min_height"   value="$(arg min_height)"/>
+    <param name="max_height"   value="$(arg max_height)"/>
+    <param name="range_min"    value="0.1"/>
+    <param name="range_max"    value="20.0"/>
+  </node>
+
+  <!-- Odom aus /high_state ableiten (falls Unitree kein /odom publiziert) -->
+  <group if="$(arg use_highstate_odom)">
+    <node pkg="go1_nav" type="highstate_to_odom.py" name="highstate_to_odom" output="screen"/>
+  </group>
+
+  <!-- /cmd_vel -> /high_cmd Bridge (inkl. Unlock 6->1->2) -->
+  <group if="$(arg start_cmdvel_bridge)">
+    <node pkg="go1_nav" type="cmdvel_to_highcmd.py" name="cmdvel_to_highcmd" output="screen"/>
+  </group>
+
+  <!-- Hector SLAM -->
+  <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
+    <param name="base_frame"             value="$(arg base_link_frame)"/>
+    <param name="odom_frame"             value="$(arg odom_frame)"/>
+    <param name="map_frame"              value="$(arg map_frame)"/>
+    <param name="pub_map_odom_transform" value="true"/>
+    <param name="map_resolution"         value="0.05"/>
+    <param name="update_factor_free"     value="0.4"/>
+    <param name="update_factor_occupied" value="0.9"/>
+    <remap from="scan" to="/scan"/>
+  </node>
+
+  <!-- move_base -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <param name="planner_frequency"     value="2.0"/>
+    <param name="controller_frequency"  value="10.0"/>
+    <param name="planner_patience"      value="3.0"/>
+    <param name="controller_patience"   value="3.0"/>
+
+    <rosparam file="$(find go1_nav)/config/costmap_common_params.yaml"    command="load" ns="global_costmap"/>
+    <rosparam file="$(find go1_nav)/config/costmap_common_params.yaml"    command="load" ns="local_costmap"/>
+    <rosparam file="$(find go1_nav)/config/global_costmap_params.yaml"    command="load" ns="global_costmap"/>
+    <rosparam file="$(find go1_nav)/config/local_costmap_params.yaml"     command="load" ns="local_costmap"/>
+    <rosparam file="$(find go1_nav)/config/base_local_planner_params.yaml" command="load"/>
+    <rosparam file="$(find go1_nav)/config/global_planner_params.yaml"    command="load"/>
+  </node>
+</launch>

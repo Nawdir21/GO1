@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Map-Pfad als Argument -->
+  <arg name="map_file" default="$(find go1_nav)/maps/my_map.yaml"/>
+
+  <param name="use_sim_time" value="false"/>
+
+  <!-- PointCloud -> LaserScan -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pcl_to_scan" output="screen">
+    <remap from="cloud_in" to="/rslidar_points"/>
+    <remap from="scan" to="/scan"/>
+    <param name="target_frame" value="rslidar"/>
+    <param name="transform_tolerance" value="0.3"/>
+    <param name="min_height" value="-0.10"/>
+    <param name="max_height" value="0.10"/>
+    <param name="range_min" value="0.1"/>
+    <param name="range_max" value="20.0"/>
+  </node>
+
+  <!-- Statischer TF: base_link -> rslidar (Offset ggf. anpassen) -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="lidar_to_base"
+        args="0 0 0.35 0 0 0 base_link rslidar"/>
+
+  <!-- Map laden -->
+  <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)"/>
+
+  <!-- AMCL -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <param name="base_frame_id" value="base_link"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="global_frame_id" value="map"/>
+    <param name="scan_topic" value="/scan"/>
+    <param name="tf_broadcast" value="true"/>
+    <rosparam file="$(find go1_nav)/config/amcl_params.yaml" command="load"/>
+  </node>
+
+  <!-- move_base -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <param name="controller_frequency" value="10.0"/>
+    <param name="planner_frequency" value="1.0"/>
+
+    <rosparam file="$(find go1_nav)/config/costmap_common_params.yaml" command="load"/>
+    <rosparam file="$(find go1_nav)/config/global_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find go1_nav)/config/local_costmap_params.yaml"  command="load"/>
+    <rosparam file="$(find go1_nav)/config/dwa_local_planner_params.yaml" command="load"/>
+
+    <!-- Falls dein Treiber nicht /cmd_vel nutzt: Remap aktivieren
+    <remap from="cmd_vel" to="/go1/cmd_vel"/>
+    -->
+  </node>
+</launch>

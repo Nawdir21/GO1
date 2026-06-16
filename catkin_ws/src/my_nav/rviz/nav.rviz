@@ -1,0 +1,25 @@
+Panels:
+- Class: rviz/Displays
+  Name: Displays
+- Class: rviz/Views
+  Name: Views
+Visualization Manager:
+  Global Options:
+    Fixed Frame: map
+  Displays:
+  - Class: rviz/Map
+    Enabled: true
+    Name: Map
+    Topic: /map
+  - Class: rviz/LaserScan
+    Enabled: true
+    Name: Scan
+    Topic: /scan_sync
+    Size (m): 0.03
+  - Class: rviz/TF
+    Enabled: true
+    Name: TF
+  Views:
+    Current:
+      Class: rviz/TopDownOrtho
+      Value: TopDown

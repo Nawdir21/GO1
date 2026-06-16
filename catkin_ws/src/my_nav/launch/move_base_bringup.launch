@@ -1,0 +1,54 @@
+<launch>
+  <!-- Karte laden -->
+  <arg name="map" default="$(env HOME)/maps/gang_hector.yaml"/>
+  <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" />
+
+  <!-- LiDAR: Cloud -> LaserScan (NUR aktiv lassen, wenn du keinen separaten Konverter in einem anderen Terminal laufen hast!) -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="cloud2scan" output="screen">
+    <param name="target_frame" value="rslidar"/>
+    <param name="min_height" value="-0.12"/>
+    <param name="max_height" value="0.12"/>
+    <param name="range_min"  value="0.20"/>
+    <param name="range_max"  value="12.0"/>
+    <remap from="cloud_in" to="/rslidar_points"/>
+    <remap from="scan"     to="/scan"/>
+  </node>
+
+  <!-- Statische TF: rslidar am Roboterkörper (Offsets ggf. anpassen) -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="rslidar_tf"
+        args="0 0 0 0 0 0 base_link rslidar" />
+
+  <!-- Odometrie aus /cmd_vel (Fallback, falls keine echte Odom vorhanden) -->
+  <node pkg="my_nav" type="twist_to_odom.py" name="twist_to_odom" output="screen">
+    <param name="base_frame_id" value="base_link"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="cmd_vel_topic" value="/cmd_vel"/>
+  </node>
+
+  <!-- AMCL (Lokalisierung) -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <param name="use_map_topic" value="true"/>
+    <param name="base_frame_id" value="base_link"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="global_frame_id" value="map"/>
+    <param name="laser_max_range" value="12.0"/>
+    <remap from="scan" to="/scan"/>
+  </node>
+
+  <!-- move_base (Planner + Costmaps) -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <rosparam file="$(find my_nav)/params/costmap_common_params.yaml"    command="load"/>
+    <rosparam file="$(find my_nav)/params/global_costmap_params.yaml"    command="load"/>
+    <rosparam file="$(find my_nav)/params/local_costmap_params.yaml"     command="load"/>
+    <rosparam file="$(find my_nav)/params/dwa_local_planner_params.yaml" command="load"/>
+  </node>
+
+  <!-- Bridge: /cmd_vel -> GO1 HighLevel UDP -->
+  <node pkg="my_nav" type="cmd_vel_to_go1.py" name="cmd_vel_to_go1" output="screen">
+    <param name="sdk_root" value="/home/ridwan/Downloads/unitree_legged_sdk"/>
+    <param name="dest_ip"  value="192.168.12.1"/>
+    <param name="max_vx"   value="0.35"/>
+    <param name="max_vy"   value="0.15"/>
+    <param name="max_yaw"  value="0.8"/>
+  </node>
+</launch>

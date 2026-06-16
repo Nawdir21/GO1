@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- LiDAR-PointCloud -> LaserScan mit großzügigen Filtern
+       Wichtig: KEIN target_frame gesetzt -> Scan bleibt im Sensorframe (rslidar) -->
+
+  <node pkg="pointcloud_to_laserscan"
+        type="pointcloud_to_laserscan_node"
+        name="pcl_to_scan_only"
+        output="screen">
+    <remap from="cloud_in" to="/rslidar_points"/>
+    <remap from="scan"    to="/scan"/>
+
+    <!-- Großer Höhenbereich, damit nichts weggeschnitten wird -->
+    <param name="min_height" value="-5.0"/>
+    <param name="max_height" value="5.0"/>
+
+    <!-- Reichweite passend zum Helios -->
+    <param name="range_min" value="0.1"/>
+    <param name="range_max" value="20.0"/>
+
+    <!-- etwas Toleranz für TF -->
+    <param name="transform_tolerance" value="0.3"/>
+
+    <!-- Optional angenehm für Konsumenten -->
+    <param name="use_inf" value="true"/>
+  </node>
+</launch>

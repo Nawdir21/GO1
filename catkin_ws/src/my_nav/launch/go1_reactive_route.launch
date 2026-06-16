@@ -1,0 +1,70 @@
+<launch>
+  <!-- Args -->
+  <arg name="start_rslidar" default="false"/>
+  <arg name="dest_ip" default="192.168.12.1"/>
+  <arg name="distance_m" default="12.0"/>
+  <arg name="vx_nom" default="0.25"/>
+  <arg name="left_target" default="0.50"/>
+
+  <!-- (Optional) RoboSense Treiber -->
+  <group if="$(arg start_rslidar)">
+    <include file="$(find rslidar_sdk)/launch/start.launch"/>
+  </group>
+
+  <!-- Cloud -> LaserScan -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="cloud2scan" output="screen" respawn="true">
+    <param name="target_frame" value="rslidar"/>
+    <param name="min_height" value="-0.12"/>
+    <param name="max_height" value="0.12"/>
+    <param name="range_min"  value="0.20"/>
+    <param name="range_max"  value="12.0"/>
+    <remap from="cloud_in" to="/rslidar_points"/>
+    <remap from="scan"     to="/scan"/>
+  </node>
+
+  <!-- Retimer -->
+  <node pkg="my_nav" type="scan_fields.py" name="scan_fields" output="screen" respawn="true">
+    <param name="scan_topic" value="/scan_sync"/>
+    <param name="stop_thresh" value="0.45"/>
+    <param name="avoid_thresh" value="0.80"/>
+    <param name="side_eps" value="0.08"/>
+  </node>
+
+  <node pkg="my_nav" type="scan_retime.py" name="scan_retime" output="screen" respawn="true">
+    <param name="in" value="/scan"/>
+    <param name="out" value="/scan_sync"/>
+    <param name="frame_id" value="rslidar"/>
+  </node>
+
+  <!-- LiDAR auf dem Roboter -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="rslidar_tf"
+        args="0 0 0 0 0 0 base_link rslidar" />
+
+  <!-- Controller: Avoidance + linker Wandabstand -->
+   <node pkg="my_nav" type="avoidance_controller.py" name="avoid_ctrl" output="screen" respawn="true">
+    <param name="left_target"  value="$(arg left_target)"/>
+    <param name="vx_nom"       value="$(arg vx_nom)"/>
+    <param name="vy_side"      value="0.12"/>
+    <param name="vy_max"       value="0.15"/>
+    <param name="k_wall_lat"   value="0.35"/>
+    <param name="stop_thresh"  value="0.45"/>
+    <param name="clear_thresh" value="0.90"/>
+    <param name="side_eps"     value="0.08"/>
+  </node>
+
+
+  <!-- Distanzsteuerung in Metern -->
+  <node pkg="my_nav" type="route_runner.py" name="route_runner" output="screen" respawn="false">
+    <param name="distance_m" value="$(arg distance_m)"/>
+    <param name="vx_nom" value="$(arg vx_nom)"/>
+  </node>
+
+  <!-- Bridge: /cmd_vel -> Unitree GO1 -->
+  <node pkg="my_nav" type="cmd_vel_to_go1.py" name="cmd_vel_to_go1" output="screen" respawn="true">
+    <param name="sdk_root" value="/home/ridwan/Downloads/unitree_legged_sdk"/>
+    <param name="dest_ip"  value="$(arg dest_ip)"/>
+    <param name="max_vx"   value="0.30"/>
+    <param name="max_vy"   value="0.12"/>
+    <param name="max_yaw"  value="0.60"/>
+  </node>
+</launch>

@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "GO1 Nav Bringup",
+      "type": "shell",
+      "command": "/bin/bash",
+      "args": ["-lc", "~/run_go1_nav.sh"],
+      "problemMatcher": [],
+      "isBackground": false,
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "RViz",
+      "type": "shell",
+      "command": "/bin/bash",
+      "args": ["-lc", "rviz"],
+      "problemMatcher": [],
+      "isBackground": false,
+      "presentation": { "reveal": "always", "panel": "new" }
+    }
+  ]
+}

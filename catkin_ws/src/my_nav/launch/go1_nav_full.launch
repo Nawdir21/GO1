@@ -1,0 +1,92 @@
+<launch>
+  <!-- ======= ARGS ======= -->
+  <arg name="map"        default="$(env HOME)/maps/gang_hector.yaml"/>
+  <arg name="sdk_root"   default="/home/ridwan/Downloads/unitree_legged_sdk"/>
+  <arg name="dest_ip"    default="192.168.12.1"/>
+  <arg name="start_rslidar" default="false"/>
+  <arg name="start_rviz"    default="true"/>
+  <arg name="cloud_in"   default="/rslidar_points"/>
+  <arg name="scan_in"    default="/scan"/>
+  <arg name="scan_sync"  default="/scan_sync"/>
+
+  <!-- OPTIONAL: RoboSense -->
+  <group if="$(arg start_rslidar)">
+    <include file="$(find rslidar_sdk)/launch/start.launch"/>
+  </group>
+
+  <!-- Cloud -> LaserScan -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="cloud2scan" output="screen" respawn="true">
+    <param name="target_frame" value="rslidar"/>
+    <param name="min_height" value="-0.12"/>
+    <param name="max_height" value="0.12"/>
+    <param name="range_min"  value="0.20"/>
+    <param name="range_max"  value="12.0"/>
+    <remap from="cloud_in" to="$(arg cloud_in)"/>
+    <remap from="scan"     to="$(arg scan_in)"/>
+  </node>
+
+  <!-- Scan Retimer -->
+  <node pkg="my_nav" type="scan_retime.py" name="scan_retime" output="screen" respawn="true">
+    <param name="in"       value="$(arg scan_in)"/>
+    <param name="out"      value="$(arg scan_sync)"/>
+    <param name="frame_id" value="rslidar"/>
+  </node>
+
+  <!-- Karte -->
+  <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" output="screen"/>
+
+  <!-- TF rslidar -> base_link -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="rslidar_tf"
+        args="0 0 0 0 0 0 base_link rslidar" />
+
+  <!-- Odom-Fallback -->
+  <node pkg="my_nav" type="twist_to_odom.py" name="twist_to_odom" output="screen" respawn="true">
+    <param name="base_frame_id" value="base_link"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="cmd_vel_topic" value="/cmd_vel"/>
+  </node>
+
+  <!-- AMCL (Remap auf /scan_sync) -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen" respawn="true">
+    <param name="use_map_topic" value="true"/>
+    <param name="base_frame_id" value="base_link"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="global_frame_id" value="map"/>
+    <remap from="scan" to="$(arg scan_sync)"/>
+  </node>
+
+  <!-- Auto: /global_localization nach AMCL-Start -->
+  <node pkg="my_nav" type="init_localize.py" name="init_localize" output="screen" />
+
+  <!-- move_base (DWA + Costmaps auf /scan_sync) -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen" respawn="true">
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
+    <rosparam file="$(find my_nav)/params/costmap_common_params.yaml"    command="load"/>
+    <rosparam file="$(find my_nav)/params/global_costmap_params.yaml"    command="load"/>
+    <rosparam file="$(find my_nav)/params/local_costmap_params.yaml"     command="load"/>
+    <rosparam file="$(find my_nav)/params/dwa_local_planner_params.yaml" command="load"/>
+    <!-- beide Costmaps auf /scan_sync heben -->
+    <rosparam param="global_costmap/observation_sources">laser</rosparam>
+    <rosparam param="global_costmap/laser">
+      {data_type: LaserScan, topic: $(arg scan_sync), marking: true, clearing: true}
+    </rosparam>
+    <rosparam param="local_costmap/observation_sources">laser</rosparam>
+    <rosparam param="local_costmap/laser">
+      {data_type: LaserScan, topic: $(arg scan_sync), marking: true, clearing: true}
+    </rosparam>
+  </node>
+
+  <!-- Bridge: /cmd_vel -> GO1 -->
+  <node pkg="my_nav" type="cmd_vel_to_go1.py" name="cmd_vel_to_go1" output="screen" respawn="true">
+    <param name="sdk_root" value="$(arg sdk_root)"/>
+    <param name="dest_ip"  value="$(arg dest_ip)"/>
+    <param name="max_vx"   value="0.30"/>
+    <param name="max_vy"   value="0.12"/>
+    <param name="max_yaw"  value="0.60"/>
+  </node>
+
+  <!-- RViz auto -->
+  <group if="$(arg start_rviz)">
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find my_nav)/rviz/nav.rviz" />
+  </group>
+</launch>
