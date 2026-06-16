@@ -1,3 +1,17 @@
+
+
+https://github.com/user-attachments/assets/1dc43d60-319c-4f6e-a0d0-ffc84de5b7b0
+
+
+
+https://github.com/user-attachments/assets/4ca346ea-7c53-405b-8373-54fdbda97b9f
+
+
+
+
+
+https://github.com/user-attachments/assets/0fe455fd-f4b9-4483-94c2-b8955bd9502d
+
 Diese Datei beschreibt, welche Befehle in den beiden Startskripten ausgeführt werden und welche Funktion sie haben.
 Die Skripte selbst (run_go1.sh und run_invcenter.sh) werden nicht genutzt –
 stattdessen können die Befehle manuell im Terminal ausgeführt werden.
